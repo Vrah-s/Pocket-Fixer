@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4eee3">
-  <meta name="description" content="A cozy little repair shop. Fix an endless stream of curious things, earn coins, and keep the workshop open.">
+  <meta name="description" content="Walk around a cozy workshop, help customers, and take on an endless stream of repair missions.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
@@ -13,56 +13,46 @@
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#home" aria-label="Pocket Workshop home">
-        <span class="brand-mark">✿</span>
-        <span><strong>Pocket Workshop</strong><small>A little place to fix things</small></span>
+      <a class="brand" href="#workshop" aria-label="Pocket Workshop">
+        <span class="brand-mark">✿</span><span><strong>Pocket Workshop</strong><small>Every little thing deserves a fix</small></span>
       </a>
       <div class="top-actions">
-        <div class="coin-pill" aria-label="Coins"><span>●</span><b id="coin-count">0</b></div>
-        <button class="icon-button" id="sound-toggle" aria-label="Toggle sounds" title="Toggle sounds">♫</button>
+        <div class="stat-pill coin-pill"><span>●</span><b id="coin-count">0</b></div>
+        <div class="stat-pill"><span>REPAIRS</span><b id="repair-count">0</b></div>
+        <button class="icon-button" id="sound-toggle" aria-label="Mute sounds" title="Toggle sounds">♫</button>
       </div>
     </header>
 
-    <section class="workshop scene" id="home-view">
-      <div class="welcome-row">
-        <div>
-          <p class="eyebrow">YOUR LITTLE CORNER</p>
-          <h1>Good day, <span>fixer.</span></h1>
-          <p class="subheading">There are lovely things waiting for a second chance.</p>
+    <section class="game-layout" id="game-layout">
+      <div class="scene-top"><div><p class="eyebrow">OPEN FOR BUSINESS</p><h1>Your workshop</h1></div><span class="shift-badge" id="shift-label">Shift 1</span></div>
+      <div class="world-frame">
+        <canvas id="world" width="960" height="640" aria-label="Workshop game. Use arrow keys or WASD to walk, and E to interact."></canvas>
+        <div class="world-chip" id="world-chip">Welcome! Walk over to a customer.</div>
+      </div>
+      <section class="mission-panel" aria-live="polite">
+        <div class="mission-icon" id="mission-icon">🛎️</div>
+        <div class="mission-text"><p class="eyebrow" id="mission-label">NEXT MISSION</p><strong id="mission-title">The workshop is waiting for its first customer</strong><span id="mission-copy">Walk around and find the customer with the “!” bubble.</span></div>
+        <button class="action-button" id="interact-button">Interact <kbd>E</kbd></button>
+      </section>
+      <div class="controls-row">
+        <p class="desktop-help">Move: <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> or WASD <span>·</span> Interact: <kbd>E</kbd></p>
+        <div class="touch-controls">
+          <div class="joystick" id="joystick" aria-label="Movement joystick"><div class="joystick-knob" id="joystick-knob"></div></div>
+          <span class="touch-help">MOVE</span>
         </div>
-        <div class="sun-sticker" aria-hidden="true">☼</div>
+        <button class="respawn-button" id="respawn-button" title="Return to the workshop entrance">Respawn</button>
       </div>
-
-      <div class="shop-art" aria-label="A cozy repair workshop illustration">
-        <div class="wall-note note-one">FIX<br>WITH<br>CARE</div>
-        <div class="window"><div class="window-sun"></div><div class="window-cross"></div><div class="hill hill-back"></div><div class="hill hill-front"></div></div>
-        <div class="shelf shelf-top"><span>🪴</span><span>📚</span><span>🧵</span><span>🌼</span></div>
-        <div class="pegboard"><i>🔧</i><i>✂️</i><i>🪛</i><i>🪚</i><i>🔨</i></div>
-        <div class="bench"><div class="bench-top"><span class="tool-cup">✎</span><span class="tiny-plant">🌱</span><span class="bench-lamp">◉</span></div><div class="bench-front"><span>POCKET WORKSHOP</span></div><div class="bench-leg left"></div><div class="bench-leg right"></div></div>
-        <div class="floor-mat"></div>
-        <div class="shop-cat" aria-hidden="true">🐈</div>
-      </div>
-
-      <div class="section-heading">
-        <div><p class="eyebrow">THE WORKSHOP IS OPEN</p><h2>Customers are waiting</h2></div>
-        <span class="job-count" id="job-count">Endless repair shift</span>
-      </div>
-      <div class="job-grid" id="job-grid"></div>
-      <footer class="home-footer"><span>Made for slow moments</span><span>✦</span><span>Your progress saves on this device</span></footer>
     </section>
 
-    <section class="repair-view scene hidden" id="repair-view" aria-live="polite">
-      <button class="back-button" id="back-button">← <span>Workshop</span></button>
-      <div class="repair-heading">
-        <p class="eyebrow" id="repair-category">A LITTLE REPAIR</p>
-        <h1 id="repair-title">A curious object</h1>
-        <p class="subheading" id="repair-description"></p>
-      </div>
-      <div class="repair-card" id="repair-card"></div>
-      <div class="repair-help" id="repair-help"></div>
-      <div class="repair-bottom"><span id="repair-progress">Take your time</span><button class="primary-button hidden" id="finish-button">Looks good! <span>→</span></button></div>
-    </section>
-
+    <div class="modal hidden" id="puzzle-modal" role="dialog" aria-modal="true" aria-labelledby="puzzle-title">
+      <section class="puzzle-window">
+        <div class="puzzle-heading"><div><p class="eyebrow" id="puzzle-category">WORKBENCH</p><h2 id="puzzle-title">Repair the object</h2></div><button class="icon-button close-button" id="close-puzzle" aria-label="Close repair">×</button></div>
+        <p class="puzzle-description" id="puzzle-description"></p>
+        <div class="repair-card" id="repair-card"></div>
+        <div class="repair-help" id="repair-help"></div>
+        <div class="puzzle-bottom"><span id="repair-progress">Take your time</span><button class="primary-button hidden" id="finish-button">Repair complete <span>→</span></button></div>
+      </section>
+    </div>
     <div class="toast hidden" id="toast" role="status"></div>
     <div class="confetti-layer hidden" id="confetti" aria-hidden="true"></div>
   </main>
