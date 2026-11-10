@@ -1,13 +1,22 @@
-const JOBS = [
-  { id: 'robot', title: 'Dusty toy robot', type: 'clean', emoji: '🤖', category: 'CLEAN & RESTORE', description: 'A little dust has settled on this old friend. Give it a gentle polish.', hint: 'Rub the toy with your finger to brush away all five dusty spots.' },
-  { id: 'radio', title: 'Grandpa’s radio', type: 'wires', emoji: '📻', category: 'CONNECT THE WIRES', description: 'The radio went quiet. Match each colored wire to its socket.', hint: 'Tap a colored wire on the left, then its matching socket on the right.' },
-  { id: 'clock', title: 'Sleepy little clock', type: 'gear', emoji: '⏰', category: 'SET THE GEAR', description: 'One gear slipped out of place. Turn it until the notch points to the mark.', hint: 'Turn the gear in 45° steps. Line the notch up with the little mark.' },
-  { id: 'pot', title: 'Garden flowerpot', type: 'clean', emoji: '🪴', category: 'CLEAN & RESTORE', description: 'This pot has seen many rainy days. Wipe it clean for a new bloom.', hint: 'Rub the pot with your finger to brush away all five muddy spots.' },
-  { id: 'bell', title: 'Bicycle bell', type: 'wires', emoji: '🚲', category: 'CONNECT THE WIRES', description: 'The bell’s tiny circuit came loose. Reconnect its colored wires.', hint: 'Tap a colored wire on the left, then its matching socket on the right.' }
-];
-
 const SAVE_KEY = 'pocket-workshop-save-v1';
-const freshSave = () => ({ coins: 0, completed: [], sound: true });
+const freshSave = () => ({ coins: 0, completedCount: 0, nextJob: 1, sound: true });
+const CLEAN_OBJECTS = [
+  ['Dusty toy robot', '🤖', 'An old friend has collected a little dust.'], ['Muddy flowerpot', '🪴', 'This pot has been out in the garden through the rain.'],
+  ['Sleepy plush bear', '🧸', 'A well-loved bear could use a gentle freshen-up.'], ['Little toy train', '🚂', 'A bit of workshop dust is hiding its bright colors.'],
+  ['Scuffed red kettle', '🫖', 'This kettle has helped make many cozy cups of tea.'], ['Traveler’s boot', '🥾', 'A long walk left this boot covered in trail dust.'],
+  ['Old lunchbox', '🍱', 'Someone’s lunchbox needs a good wipe before tomorrow.'], ['Tiny toy boat', '⛵', 'The little boat came back from a very muddy pond.']
+];
+const WIRE_OBJECTS = [
+  ['Grandpa’s radio', '📻', 'The radio went quiet when its wires came loose.'], ['Bicycle bell', '🚲', 'Reconnect the tiny circuit so the bell can ring again.'],
+  ['Music box', '🎶', 'Its little song stopped when the wires slipped apart.'], ['Desk lamp', '💡', 'Match the colored wires to bring the lamp back to life.'],
+  ['Toy rover', '🛸', 'The rover is ready to roll as soon as its wires are fixed.'], ['Table fan', '🌀', 'Match the wires and bring back a gentle breeze.']
+];
+const GEAR_OBJECTS = [
+  ['Sleepy little clock', '⏰', 'One gear slipped out of place while the clock was napping.'], ['Wind-up bird', '🐦', 'Its tiny winding gear needs to point to the right mark.'],
+  ['Pocket watch', '⌚', 'A careful turn will set this old watch ticking again.'], ['Toy windmill', '🌬️', 'Line up the gear so the little mill can spin.'],
+  ['Music box wheel', '🎼', 'Set the gear, and the music box can play its tune.']
+];
+const WIRE_COLORS = ['red', 'blue', 'yellow', 'green', 'purple', 'orange'];
 let save = loadSave();
 let currentJob = null;
 let puzzleDone = false;
@@ -24,23 +33,38 @@ const homeView = $('home-view');
 const repairView = $('repair-view');
 
 function loadSave() {
-  try { return { ...freshSave(), ...JSON.parse(localStorage.getItem(SAVE_KEY) || '{}') }; }
-  catch { return freshSave(); }
+  try {
+    const oldSave = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
+    const completedCount = Number.isInteger(oldSave.completedCount) ? oldSave.completedCount : (Array.isArray(oldSave.completed) ? oldSave.completed.length : 0);
+    return { ...freshSave(), ...oldSave, completedCount, nextJob: Math.max(oldSave.nextJob || 1, completedCount + 1) };
+  } catch { return freshSave(); }
 }
 function storeSave() {
   save.sound = soundOn;
+  delete save.completed;
   localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+}
+function createJob(number) {
+  const types = ['clean', 'wires', 'gear', 'clean', 'gear', 'wires'];
+  const type = types[(number - 1) % types.length];
+  const pool = type === 'clean' ? CLEAN_OBJECTS : type === 'wires' ? WIRE_OBJECTS : GEAR_OBJECTS;
+  const [baseTitle, emoji, detail] = pool[(number - 1) % pool.length];
+  const difficulty = Math.floor((number - 1) / 5);
+  const job = { number, id: `repair-${number}`, title: baseTitle, type, emoji, detail, difficulty,
+    difficultyLabel: difficulty === 0 ? 'Easy-going' : difficulty < 3 ? 'Getting trickier' : 'Workshop pro' };
+  if (type === 'clean') job.dustCount = 5 + Math.min(10, difficulty);
+  if (type === 'wires') job.wireCount = 4 + Math.min(2, difficulty);
+  if (type === 'gear') job.targetAngle = ((number * 2 % 7) + 1) * 45;
+  return job;
 }
 function renderHome() {
   $('coin-count').textContent = save.coins;
-  $('job-count').textContent = `${save.completed.length} / ${JOBS.length} finished`;
-  $('job-grid').innerHTML = JOBS.map((job, index) => {
-    const complete = save.completed.includes(job.id);
-    return `<button class="job-card ${complete ? 'completed' : ''}" data-job="${job.id}" aria-label="${complete ? 'Replay' : 'Start'} ${job.title}">
-      <span class="job-emoji">${job.emoji}</span><span class="job-info"><strong>${job.title}</strong><small>${complete ? 'Revisit this repair' : ['A quick polish', 'A bit of rewiring', 'A careful adjustment', 'A freshen-up', 'One more connection'][index]}</small></span>
-      <span class="${complete ? 'job-check' : 'job-arrow'}">${complete ? '✓' : '›'}</span></button>`;
-  }).join('');
-  document.querySelectorAll('.job-card').forEach(button => button.addEventListener('click', () => openJob(button.dataset.job)));
+  $('job-count').textContent = `${save.completedCount} repairs finished · Shift ${Math.floor(save.completedCount / 5) + 1}`;
+  const waiting = [0, 1, 2].map(offset => createJob(save.nextJob + offset));
+  $('job-grid').innerHTML = waiting.map((job, index) => `<button class="job-card ${index ? 'waiting' : 'ready'}" data-job="${job.number}" ${index ? 'disabled' : ''} aria-label="${index ? 'Waiting customer' : 'Start repair'}: ${job.title}">
+      <span class="job-emoji">${job.emoji}</span><span class="job-info"><strong>${job.title}</strong><small>${index === 0 ? `Repair #${job.number} · ${job.difficultyLabel}` : `Customer #${job.number} · waiting in line`}</small></span>
+      <span class="${index ? 'job-check' : 'job-arrow'}">${index ? '…' : '›'}</span></button>`).join('');
+  document.querySelectorAll('.job-card:not(:disabled)').forEach(button => button.addEventListener('click', () => openJob(Number(button.dataset.job))));
 }
 function showHome() {
   repairView.classList.add('hidden');
@@ -49,15 +73,18 @@ function showHome() {
   renderHome();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-function openJob(id) {
-  currentJob = JOBS.find(job => job.id === id);
-  if (!currentJob) return;
+function openJob(number) {
+  currentJob = createJob(number);
   puzzleDone = false;
   $('repair-title').textContent = currentJob.title;
-  $('repair-category').textContent = currentJob.category;
-  $('repair-description').textContent = currentJob.description;
-  $('repair-help').textContent = currentJob.hint;
-  $('repair-progress').textContent = save.completed.includes(id) ? 'You’ve fixed this one before' : 'A new little challenge';
+  $('repair-category').textContent = `${currentJob.type === 'clean' ? 'CLEAN & RESTORE' : currentJob.type === 'wires' ? 'CONNECT THE WIRES' : 'SET THE GEAR'} · REPAIR #${currentJob.number}`;
+  $('repair-description').textContent = currentJob.detail;
+  $('repair-help').textContent = currentJob.type === 'clean'
+    ? `Rub the object to clear all ${currentJob.dustCount} dusty spots.`
+    : currentJob.type === 'wires'
+      ? `Tap a colored wire, then its matching socket. Connect all ${currentJob.wireCount} pairs.`
+      : `Turn the gear in 45° steps until it reaches ${currentJob.targetAngle}°.`;
+  $('repair-progress').textContent = `${currentJob.difficultyLabel} · take your time`;
   $('finish-button').classList.add('hidden');
   homeView.classList.add('hidden');
   repairView.classList.remove('hidden');
@@ -73,8 +100,7 @@ function buildPuzzle() {
 }
 function buildCleaning(card) {
   cleaningCount = 0;
-  const object = currentJob.id === 'robot' ? '🤖' : '🪴';
-  card.innerHTML = `<div class="clean-puzzle"><p class="puzzle-label">A gentle polish, please</p><div class="toy-wrap"><div class="toy" id="toy" role="img" aria-label="Dusty ${currentJob.title}">${object}</div><div class="dust-layer">${Array.from({ length: 5 }, (_, i) => `<i class="dust" data-dust="${i}"></i>`).join('')}</div></div><div class="wipe-pad"></div></div>`;
+  card.innerHTML = `<div class="clean-puzzle"><p class="puzzle-label">A gentle polish, please</p><div class="toy-wrap"><div class="toy" id="toy" role="img" aria-label="Dusty ${currentJob.title}">${currentJob.emoji}</div><div class="dust-layer">${Array.from({ length: currentJob.dustCount }, (_, i) => `<i class="dust" data-dust="${i}" style="left:${12 + Math.random() * 74}%;top:${12 + Math.random() * 74}%"></i>`).join('')}</div></div><div class="wipe-pad"></div></div>`;
   const toy = $('toy');
   let pointerDown = false;
   const brush = event => {
@@ -82,19 +108,18 @@ function buildCleaning(card) {
     const rect = toy.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
-    const spots = [...document.querySelectorAll('.dust:not(.gone)')];
-    for (const spot of spots) {
+    for (const spot of [...document.querySelectorAll('.dust:not(.gone)')]) {
       const spotRect = spot.getBoundingClientRect();
       const sx = (spotRect.left + spotRect.width / 2 - rect.left) / rect.width;
       const sy = (spotRect.top + spotRect.height / 2 - rect.top) / rect.height;
-      if (Math.hypot(x - sx, y - sy) < .25) {
+      if (Math.hypot(x - sx, y - sy) < .22) {
         spot.classList.add('gone');
         cleaningCount += 1;
-        $('repair-progress').textContent = `${cleaningCount} of 5 dusty spots brushed away`;
-        playTone(520 + cleaningCount * 55, .045);
+        $('repair-progress').textContent = `${cleaningCount} of ${currentJob.dustCount} spots cleaned`;
+        playTone(520 + cleaningCount * 30, .045);
       }
     }
-    if (cleaningCount >= 5) {
+    if (cleaningCount >= currentJob.dustCount) {
       toy.classList.remove('cleaning');
       toy.classList.add('cleaned');
       completePuzzle('All fresh and shiny!');
@@ -108,13 +133,14 @@ function buildCleaning(card) {
 function buildWires(card) {
   selectedWire = null;
   connectedWires = new Set();
-  const colors = ['red', 'blue', 'yellow', 'green'];
-  const rightOrder = ['green', 'red', 'yellow', 'blue'];
-  card.innerHTML = `<div class="wire-puzzle"><div class="radio">${currentJob.id === 'radio' ? '📻' : '🚲'}</div><p class="wire-instructions">Find the matching colored ends</p><div class="wire-board"><div class="terminal-column">${colors.map(color => terminal(color, 'left')).join('')}</div><div class="terminal-column">${rightOrder.map(color => terminal(color, 'right')).join('')}</div></div><div class="match-lines" id="match-lines">0 of 4 connections</div></div>`;
+  const colors = WIRE_COLORS.slice(0, currentJob.wireCount);
+  const rightOrder = [...colors].sort(() => Math.random() - .5);
+  card.innerHTML = `<div class="wire-puzzle"><div class="radio">${currentJob.emoji}</div><p class="wire-instructions">Find the matching colored ends</p><div class="wire-board"><div class="terminal-column">${colors.map(color => terminal(color, 'left')).join('')}</div><div class="terminal-column">${rightOrder.map(color => terminal(color, 'right')).join('')}</div></div><div class="match-lines" id="match-lines">0 of ${colors.length} connections</div></div>`;
   document.querySelectorAll('.terminal').forEach(button => button.addEventListener('click', () => connectWire(button.dataset.color, button.dataset.side)));
 }
 function terminal(color, side) {
-  return `<button class="terminal ${side} wire-${color}" data-color="${color}" data-side="${side}">${side === 'left' ? `<i class="terminal-dot"></i>${color[0].toUpperCase() + color.slice(1)} wire` : `Socket<i class="terminal-dot"></i>`}</button>`;
+  const label = color[0].toUpperCase() + color.slice(1);
+  return `<button class="terminal ${side} wire-${color}" data-color="${color}" data-side="${side}">${side === 'left' ? `<i class="terminal-dot"></i>${label} wire` : `Socket<i class="terminal-dot"></i>`}</button>`;
 }
 function connectWire(color, side) {
   if (connectedWires.has(color)) return;
@@ -134,26 +160,26 @@ function connectWire(color, side) {
   if (color === selectedWire) {
     connectedWires.add(color);
     document.querySelectorAll(`.terminal[data-color="${color}"]`).forEach(el => { el.classList.add('connected'); el.classList.remove('selected'); });
-    playTone(610 + connectedWires.size * 50, .08);
+    playTone(610 + connectedWires.size * 30, .08);
   } else {
     showToast('Those colors do not match. Try another socket.');
     playTone(180, .1);
   }
   selectedWire = null;
-  $('match-lines').textContent = `${connectedWires.size} of 4 connections`;
-  if (connectedWires.size === 4) completePuzzle('Every wire is back in place!');
+  $('match-lines').textContent = `${connectedWires.size} of ${currentJob.wireCount} connections`;
+  if (connectedWires.size === currentJob.wireCount) completePuzzle('Every wire is back in place!');
 }
 function buildGear(card) {
   angle = 0;
-  const target = 90;
-  card.innerHTML = `<div class="gear-puzzle"><div class="gear-icon" id="gear"><span>⚙</span></div><div class="gear-target">✦ &nbsp; LINE THE NOTCH UP WITH THE MARK &nbsp; ✦</div><div class="gear-controls"><button class="round-control" id="turn-left" aria-label="Turn gear left">↶</button><span class="angle-indicator" id="angle">0°</span><button class="round-control" id="turn-right" aria-label="Turn gear right">↷</button></div></div>`;
+  const target = currentJob.targetAngle;
+  card.innerHTML = `<div class="gear-puzzle"><div class="gear-icon" id="gear"><span>⚙</span></div><div class="gear-target">✦ &nbsp; LINE UP WITH THE MARK AT ${target}° &nbsp; ✦</div><div class="gear-controls"><button class="round-control" id="turn-left" aria-label="Turn gear left">↶</button><span class="angle-indicator" id="angle">0°</span><button class="round-control" id="turn-right" aria-label="Turn gear right">↷</button></div></div>`;
   const turn = direction => {
     if (puzzleDone) return;
     angle = (angle + direction * 45 + 360) % 360;
     $('gear').style.transform = `rotate(${angle}deg)`;
     $('angle').textContent = `${angle}°`;
     playTone(430 + angle, .05);
-    if (angle === target) completePuzzle('The clock is ticking again!');
+    if (angle === target) completePuzzle('Perfect fit. It’s working again!');
   };
   $('turn-left').addEventListener('click', () => turn(-1));
   $('turn-right').addEventListener('click', () => turn(1));
@@ -163,19 +189,18 @@ function completePuzzle(message) {
   puzzleDone = true;
   $('repair-help').textContent = message;
   $('finish-button').classList.remove('hidden');
-  $('repair-progress').textContent = 'Lovely work. Ready to wrap up?';
+  $('repair-progress').textContent = 'Lovely work. Ready to welcome the next customer?';
   playTone(760, .11);
 }
 function finishJob() {
   if (!currentJob || !puzzleDone) return;
-  const firstTime = !save.completed.includes(currentJob.id);
-  if (firstTime) {
-    save.completed.push(currentJob.id);
-    save.coins += 10;
-    storeSave();
-    showToast('Repair complete! +10 little coins');
-    celebrate();
-  } else showToast('A lovely repair, all over again!');
+  const reward = 10 + Math.floor(currentJob.difficulty / 2);
+  save.completedCount += 1;
+  save.nextJob = currentJob.number + 1;
+  save.coins += reward;
+  storeSave();
+  showToast(`Repair complete! +${reward} little coins`);
+  celebrate();
   playTone(720, .1);
   showHome();
 }
