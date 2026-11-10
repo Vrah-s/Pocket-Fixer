@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4eee3">
+  <meta name="description" content="A cozy little repair shop. Fix curious things, earn stars, and make the workshop your own.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>Pocket Workshop</title>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#home" aria-label="Pocket Workshop home">
+        <span class="brand-mark">✿</span>
+        <span><strong>Pocket Workshop</strong><small>A little place to fix things</small></span>
+      </a>
+      <div class="top-actions">
+        <div class="coin-pill" aria-label="Coins"><span>●</span><b id="coin-count">0</b></div>
+        <button class="icon-button" id="sound-toggle" aria-label="Toggle sounds" title="Toggle sounds">♫</button>
+      </div>
+    </header>
+
+    <section class="workshop scene" id="home-view">
+      <div class="welcome-row">
+        <div>
+          <p class="eyebrow">YOUR LITTLE CORNER</p>
+          <h1>Good day, <span>fixer.</span></h1>
+          <p class="subheading">There are lovely things waiting for a second chance.</p>
+        </div>
+        <div class="sun-sticker" aria-hidden="true">☼</div>
+      </div>
+
+      <div class="shop-art" aria-label="A cozy repair workshop illustration">
+        <div class="wall-note note-one">FIX<br>WITH<br>CARE</div>
+        <div class="window"><div class="window-sun"></div><div class="window-cross"></div><div class="hill hill-back"></div><div class="hill hill-front"></div></div>
+        <div class="shelf shelf-top"><span>🪴</span><span>📚</span><span>🧵</span><span>🌼</span></div>
+        <div class="pegboard"><i>🔧</i><i>✂️</i><i>🪛</i><i>🪚</i><i>🔨</i></div>
+        <div class="bench"><div class="bench-top"><span class="tool-cup">✎</span><span class="tiny-plant">🌱</span><span class="bench-lamp">◉</span></div><div class="bench-front"><span>POCKET WORKSHOP</span></div><div class="bench-leg left"></div><div class="bench-leg right"></div></div>
+        <div class="floor-mat"></div>
+        <div class="shop-cat" aria-hidden="true">🐈</div>
+      </div>
+
+      <div class="section-heading">
+        <div><p class="eyebrow">ON THE WORKBENCH</p><h2>Today's little jobs</h2></div>
+        <span class="job-count" id="job-count">0 / 5 finished</span>
+      </div>
+      <div class="job-grid" id="job-grid"></div>
+      <footer class="home-footer"><span>Made for slow moments</span><span>✦</span><span>Your progress saves on this device</span></footer>
+    </section>
+
+    <section class="repair-view scene hidden" id="repair-view" aria-live="polite">
+      <button class="back-button" id="back-button">← <span>Workshop</span></button>
+      <div class="repair-heading">
+        <p class="eyebrow" id="repair-category">A LITTLE REPAIR</p>
+        <h1 id="repair-title">A curious object</h1>
+        <p class="subheading" id="repair-description"></p>
+      </div>
+      <div class="repair-card" id="repair-card"></div>
+      <div class="repair-help" id="repair-help"></div>
+      <div class="repair-bottom"><span id="repair-progress">Take your time</span><button class="primary-button hidden" id="finish-button">Looks good! <span>→</span></button></div>
+    </section>
+
+    <div class="toast hidden" id="toast" role="status"></div>
+    <div class="confetti-layer hidden" id="confetti" aria-hidden="true"></div>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>

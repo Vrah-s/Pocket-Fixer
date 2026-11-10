@@ -1,0 +1,14 @@
+{
+  "name": "Pocket Workshop",
+  "short_name": "Workshop",
+  "description": "A cozy little repair shop game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4eee3",
+  "theme_color": "#f4eee3",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
